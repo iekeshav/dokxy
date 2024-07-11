@@ -1,53 +1,60 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const Patient = require('../models/Patient');
 const authenticate = require('../middleware/authMiddleware');
 const router = express.Router();
+const multer = require('multer');
 
-// Patient sign-up
-router.post('/signup', async (req, res) => {
-    const { name, email, password } = req.body;
-    try {
-        const hashedPassword = bcrypt.hashSync(password, 10);
-        const newUser = new User({ name, email, password: hashedPassword, role: 'patient' });
-        await newUser.save();
-        res.status(201).json({ message: 'User created successfully' });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+// Multer setup for file uploads
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/');
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
     }
 });
+const upload = multer({ storage: storage });
 
-// Patient profile management
+// Get patient profile
 router.get('/profile', authenticate, async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        res.json(user);
+        const patient = await Patient.findById(req.user.userId);
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+        res.json(patient);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
+// Update patient profile
 router.put('/profile', authenticate, async (req, res) => {
     const { name, email } = req.body;
     try {
-        const user = await User.findById(req.user._id);
-        if (name) user.name = name;
-        if (email) user.email = email;
-        await user.save();
-        res.json({ message: 'Profile updated successfully' });
+        const patient = await Patient.findById(req.user.userId);
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+        patient.name = name || patient.name;
+        patient.email = email || patient.email;
+        await patient.save();
+        res.json(patient);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
 
-router.put('/profile/photo', authenticate, async (req, res) => {
-    const { profilePhoto } = req.body;
+// Upload/change profile photo
+router.post('/profile/photo', authenticate, upload.single('profilePhoto'), async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
-        user.profilePhoto = profilePhoto;
-        await user.save();
-        res.json({ message: 'Profile photo updated successfully' });
+        const patient = await Patient.findById(req.user.userId);
+        if (!patient) {
+            return res.status(404).json({ message: 'Patient not found' });
+        }
+        patient.profilePhoto = req.file.path;
+        await patient.save();
+        res.json(patient);
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

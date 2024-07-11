@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time Chat</title>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    #chat-container {
+      display: flex;
+      flex-direction: column;
+      width: 300px;
+      margin: 0 auto;
+    }
+    #messages {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 200px;
+      overflow-y: scroll;
+      margin-bottom: 10px;
+    }
+    #message-input {
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    #send-button {
+      padding: 10px;
+    }
+  </style>
+</head>
+<body>
+<h1>Real-Time Chat</h1>
+<div id="chat-container">
+  <div id="messages"></div>
+  <input id="message-input" placeholder="Type a message..." />
+  <button id="send-button">Send</button>
+</div>
+
+<script>
+  const socket = io('http://localhost:3000');
+  const roomId = 'chat-room'; // You can generate unique room IDs
+  const messagesDiv = document.getElementById('messages');
+  const messageInput = document.getElementById('message-input');
+  const sendButton = document.getElementById('send-button');
+
+  socket.emit('join-room', roomId);
+
+  socket.on('receive-message', (message) => {
+    const messageElement = document.createElement('div');
+    messageElement.textContent = message;
+    messagesDiv.appendChild(messageElement);
+  });
+
+  sendButton.addEventListener('click', () => {
+    const message = messageInput.value;
+    socket.emit('send-message', roomId, message);
+    messageInput.value = '';
+  });
+</script>
+</body>
+</html>
