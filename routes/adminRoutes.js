@@ -1,37 +1,51 @@
 const express = require('express');
-const router = express.Router();
-const User = require('../models/User');
 const bcrypt = require('bcryptjs');
-const logAction = require('../middleware/auditMiddleware');
+const User = require('../models/User');
+const Doctor = require('../models/Doctor');
+const Appointment = require('../models/Appointment');
 const authenticate = require('../middleware/authMiddleware');
+const router = express.Router();
 
-router.post('/doctors', authenticate, logAction('Add Doctor'), async (req, res) => {
-    const { name, email, password, specialty } = req.body;
-    console.log('Received request to add doctor:', { name, email, specialty });
-
+// Admin: Add doctor
+router.post('/add-doctor', authenticate, async (req, res) => {
+    const { name, email, password, specialty, location } = req.body;
     try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) {
-            console.log('Email already in use:', email);
-            return res.status(400).json({ message: 'Email already in use' });
-        }
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        const newDoctor = new Doctor({ name, email, password: hashedPassword, specialty, location });
+        await newDoctor.save();
+        res.status(201).json({ message: 'Doctor added successfully' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
-        console.log('Creating new doctor:', { name, email, specialty });
-        const doctor = new User({
-            name,
-            email,
-            password,
-            role: 'doctor',
-            specialty,
-        });
+// Admin: View all users
+router.get('/users', authenticate, async (req, res) => {
+    try {
+        const users = await User.find();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
-        await doctor.save();
-        console.log('Doctor added successfully:', doctor);
+// Admin: View all doctors
+router.get('/doctors', authenticate, async (req, res) => {
+    try {
+        const doctors = await Doctor.find();
+        res.json(doctors);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
-        res.status(201).json({ message: 'Doctor added successfully', doctor });
-    } catch (err) {
-        console.log('Error adding doctor:', err);
-        res.status(500).json({ message: err.message });
+// Admin: View all appointments
+router.get('/appointments', authenticate, async (req, res) => {
+    try {
+        const appointments = await Appointment.find().populate('patient doctor', 'name email');
+        res.json(appointments);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 });
 

@@ -15,5 +15,14 @@ router.post('/book', authenticate, async (req, res) => {
     }
 });
 
-module.exports = router;
+// Get patient's appointments
+router.get('/my-appointments', authenticate, async (req, res) => {
+    try {
+        const appointments = await Appointment.find({ patient: req.user._id }).populate('doctor', 'name specialty location');
+        res.json(appointments);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+});
 
+module.exports = router;

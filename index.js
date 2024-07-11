@@ -20,8 +20,8 @@ mongoose.connect(process.env.DB_CONNECTION, { useNewUrlParser: true, useUnifiedT
     });
 
 app.use('/api/auth', authRoutes);
-app.use('/api/doctors', authenticate, doctorRoutes);
-app.use('/api/patients', authenticate, patientRoutes);
+app.use('/api/doctors', doctorRoutes);
+app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', authenticate, appointmentRoutes);
 app.use('/api/admin', authenticate, adminRoutes);
 app.use('/api/notifications', authenticate, notificationRoutes);
